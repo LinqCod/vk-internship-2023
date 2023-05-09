@@ -108,6 +108,7 @@ func (b *NumbersBot) Start() {
 		log.Fatal(err)
 	}
 
+	currentCategory := ""
 	prevCommand := ""
 	for update := range updates {
 		if update.Message == nil {
@@ -120,53 +121,85 @@ func (b *NumbersBot) Start() {
 		switch update.Message.Text {
 		case "/start":
 			msgText = "Hello, glad to see u with us :)\nLet's explore some interesting facts about numbers!"
-			prevCommand = "/start"
+			prevCommand = ""
+			currentCategory = ""
 		case "math":
 			msgText = "Choose one option to see a math fact!"
-			prevCommand = "math"
 			keyboardId = 1
+			currentCategory = "math"
+			prevCommand = ""
 		case "trivia":
 			msgText = "Choose one option to see a trivia fact!"
-			prevCommand = "trivia"
 			keyboardId = 2
+			currentCategory = "trivia"
+			prevCommand = ""
 		case "About specific number":
-			msgText = "Please, enter the number to get fact about it:"
+			if currentCategory == "math" || currentCategory == "trivia" {
+				msgText = "Please, enter the number to get fact about it:"
+				prevCommand = "About specific number"
+			} else {
+				msgText = "Please, choose the category!"
+			}
 		case "About random number", "About random date", "About random year":
-			if prevCommand == "math" || prevCommand == "trivia" || prevCommand == "date" || prevCommand == "year" {
-				msgText, err = b.numbersApi.GetFact("random", prevCommand)
+			if prevCommand == "About specific number" {
+				msgText = "First, u need to complete your specific number fact request! So enter your number:"
+			} else if prevCommand == "About specific date" {
+				msgText = "First, u need to complete your specific date fact request! So enter your date in format (month/day):"
+			} else if prevCommand == "About specific year" {
+				msgText = "First, u need to complete your specific year fact request! So enter your year:"
+			} else if currentCategory == "math" || currentCategory == "trivia" || currentCategory == "date" || currentCategory == "year" {
+				msgText, err = b.numbersApi.GetFact("random", currentCategory)
 				if err != nil {
 					log.Fatalf("error while getting fact: %s", err)
 				}
+				currentCategory = ""
+				prevCommand = ""
 			} else {
 				msgText = "Please, choose the category!"
 			}
 		case "About specific date":
-			msgText = "Please, enter the date in format (month/day without leading zeros) to get fact about it:"
+			if currentCategory == "date" {
+				msgText = "Please, enter the date in format (month/day without leading zeros) to get fact about it:"
+				prevCommand = "About specific date"
+			} else {
+				msgText = "Please, choose the category!"
+			}
 		case "About specific year":
-			msgText = "Please, enter the year to get fact about it:"
+			if currentCategory == "year" {
+				msgText = "Please, enter the year to get fact about it:"
+				prevCommand = "About specific year"
+			} else {
+				msgText = "Please, choose the category!"
+			}
 		case "date":
 			msgText = "Choose one option to see a specific date fact!"
-			prevCommand = "date"
 			keyboardId = 3
+			currentCategory = "date"
+			prevCommand = ""
 		case "year":
 			msgText = "Choose one option to see a specific year fact!"
-			prevCommand = "year"
 			keyboardId = 4
+			currentCategory = "year"
+			prevCommand = ""
 		case "<- Back":
 			msgText = "what would you like to choose then?"
-			prevCommand = "<- Back"
+			currentCategory = ""
+			prevCommand = ""
 		default:
-			if prevCommand == "year" || prevCommand == "math" || prevCommand == "trivia" {
+			if prevCommand == "About specific year" || prevCommand == "About specific number" {
 				if _, err = strconv.ParseInt(update.Message.Text, 10, 32); err != nil {
 					log.Println(err)
 					msgText = "Please, enter a valid number!"
 				} else {
-					msgText, err = b.numbersApi.GetFact(update.Message.Text, prevCommand)
+					msgText, err = b.numbersApi.GetFact(update.Message.Text, currentCategory)
 					if err != nil {
 						log.Fatalf("error while getting fact: %s", err)
 					}
+
+					currentCategory = ""
+					prevCommand = ""
 				}
-			} else if prevCommand == "date" {
+			} else if prevCommand == "About specific date" {
 				monthAndDay := strings.Split(update.Message.Text, "/")
 				if len(monthAndDay) == 2 && monthAndDay[0] != "" && monthAndDay[1] != "" {
 					if _, err = strconv.ParseInt(monthAndDay[0], 10, 32); err != nil {
@@ -176,21 +209,23 @@ func (b *NumbersBot) Start() {
 						log.Println(err)
 						msgText = "Please, enter a valid day!"
 					} else {
-						msgText, err = b.numbersApi.GetFact(update.Message.Text, prevCommand)
+						msgText, err = b.numbersApi.GetFact(update.Message.Text, currentCategory)
 						if err != nil {
 							log.Fatalf("error while getting fact: %s", err)
 						}
+
+						currentCategory = ""
+						prevCommand = ""
 					}
 				} else {
 					msgText = "Please, enter a valid date!"
 				}
 			} else {
 				msgText = "I don't know this command :("
+				currentCategory = ""
 				prevCommand = ""
 			}
 		}
-
-		log.Println(prevCommand)
 
 		msg.ReplyMarkup = b.keyboards[keyboardId]
 		msg.Text = msgText
