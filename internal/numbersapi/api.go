@@ -1,9 +1,9 @@
 package numbersapi
 
 import (
-	"github.com/spf13/viper"
 	"io"
 	"net/http"
+	"os"
 )
 
 type Api struct {
@@ -11,7 +11,7 @@ type Api struct {
 }
 
 func NewApi() *Api {
-	baseUrl := viper.GetString("BASE_URL")
+	baseUrl := os.Getenv("BASE_URL")
 
 	return &Api{
 		baseUrl: baseUrl,

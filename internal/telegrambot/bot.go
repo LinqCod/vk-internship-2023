@@ -3,8 +3,8 @@ package telegrambot
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api"
 	"github.com/linqcod/vk-internship-2023/internal/numbersapi"
-	"github.com/spf13/viper"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -78,18 +78,24 @@ type NumbersBot struct {
 }
 
 func NewNumbersBot(numbersApi *numbersapi.Api) (*NumbersBot, error) {
-	token := viper.GetString("TOKEN")
+	token := os.Getenv("TOKEN")
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
-	offset := viper.GetInt("UPDATE_OFFSET")
-	timeout := viper.GetInt("UPDATE_TIMEOUT")
+	offset, err := strconv.ParseInt(os.Getenv("UPDATE_OFFSET"), 10, 32)
+	if err != nil {
+		return nil, err
+	}
+	timeout, err := strconv.ParseInt(os.Getenv("UPDATE_TIMEOUT"), 10, 32)
+	if err != nil {
+		return nil, err
+	}
 	u := tgbotapi.UpdateConfig{
-		Offset:  offset,
-		Timeout: timeout,
+		Offset:  int(offset),
+		Timeout: int(timeout),
 	}
 
 	keyboards := initKeyboards()
