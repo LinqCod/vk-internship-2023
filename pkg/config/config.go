@@ -6,9 +6,7 @@ import (
 )
 
 func LoadConfig() {
-	viper.SetConfigName("app")
-	viper.SetConfigType("env")
-	viper.AddConfigPath(".")
+	viper.SetConfigFile(".env")
 
 	if err := viper.ReadInConfig(); err != nil {
 		log.Fatal("config errors: ", err.Error())
